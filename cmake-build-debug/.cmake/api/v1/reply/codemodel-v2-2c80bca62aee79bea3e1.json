@@ -39,7 +39,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "maman22::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-maman22-Debug-321985700fcdbee21b7c.json",
+					"jsonFile" : "target-maman22-Debug-b162071df3d1425608ab.json",
 					"name" : "maman22",
 					"projectIndex" : 0
 				}
@@ -55,6 +55,6 @@
 	"version" : 
 	{
 		"major" : 2,
-		"minor" : 5
+		"minor" : 6
 	}
 }
