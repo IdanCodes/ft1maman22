@@ -1,21 +1,63 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "mymat.h"
+#include "inputhelper.h"
+#include "errorhelper.h"
+#include "mathelper.h"
+
+#define NUM_MATS    6       /* number of matrices */
+
+#define GET_VAR_NAME(Variable) (#Variable)
 
 int main(void) {
-    mat m1, m2, m3;
-    double values1[] = { 1, 1, 1, 1, 2, 2, 2, 2, -1, 1, 1, 1, 2, 2, 2, 2 };
-    read_mat(&m1, values1, 16);
+    int i;
+    char *line;
+    ErrCode err;
+    Instruction instr;
 
-    double values2[] = { 1, 0, 1, 0, 2, 2, 0, 0, 1, 1, 0, 1, 1, 0, 2, 3 };
-    read_mat(&m2, values2, 16);
+    mat MAT_A, MAT_B, MAT_C, MAT_D, MAT_E, MAT_F;
+    /* register the matrices */
+    MatId mats[NUM_MATS] = {
+            { GET_VAR_NAME(MAT_A), NULL },
+            { GET_VAR_NAME(MAT_B), NULL },
+            { GET_VAR_NAME(MAT_C), NULL },
+            { GET_VAR_NAME(MAT_D), NULL },
+            { GET_VAR_NAME(MAT_E), NULL },
+            { GET_VAR_NAME(MAT_F), NULL }
+    };
 
-    trans_mat(m1, &m2);
+    /* initialize matrices */
+    mats[0].matrix = &MAT_A;
+    mats[1].matrix = &MAT_B;
+    mats[2].matrix = &MAT_C;
+    mats[3].matrix = &MAT_D;
+    mats[4].matrix = &MAT_E;
+    mats[5].matrix = &MAT_F;
+    for (i = 0; i < NUM_MATS; i++)
+        init_mat(mats[i].matrix);
 
-    printf("m1:\n");
-    print_mat(m1);
+    while (getNextLine(&line) != 0) {
+        printf("%s\n", line);   /* print the line back */
 
-    printf("\nm1^T:\n");
-    print_mat(m2);
+        err = lineToInstruction(line, &instr);
+        if (err == err_none) {
+            executeInstruction(instr, mats, NUM_MATS);
 
+            if (instr.cmd == cmd_stop)
+                break;
+        }
+        else {
+            logErr(err);
+
+            if (err == err_insuf_mem) {
+                printf("Stopping Program.\n");
+                break;
+            }
+        }
+
+        free(line);
+    }
+
+    free(line); /* in case we unexpectedly break from the loop */
     return 0;
 }

@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include "mymat.h"
-#include "utils.h"
 
 /* read_mat: set the given matrix's first #count cells' values to the matching given values; the rest will be set to 0.
  * Assuming count <= values' length */
 void read_mat(mat *pm, const double values[], int count) {
     int i;
 
-    count = (int)min(count, MAT_WIDTH * MAT_HEIGHT);    /* clamp count */
+    count = count < MAT_WIDTH * MAT_HEIGHT ? count : MAT_WIDTH * MAT_HEIGHT; /* clamp count */
 
     for (i = 0; i < count; i++)
         pm->cells[i / 4][i % 4] = values[i];    /* mapping the values array's index to the cells' index */
@@ -82,8 +81,8 @@ void trans_mat(mat matrix, mat *dest) {
     }
 }
 
-/* reset_mat: reset the given matrix's cells' values to 0 */
-void reset_mat(mat *pm) {
+/* init_mat: initialize the given matrix's cells' values to 0 */
+void init_mat(mat *pm) {
     const double empty_values[] = { 0 };
     read_mat(pm, empty_values, 0);
 }

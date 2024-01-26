@@ -1,3 +1,6 @@
+#ifndef MYMAT
+#define MYMAT
+
 #define MAT_WIDTH   4
 #define MAT_HEIGHT  4
 
@@ -12,4 +15,6 @@ void sub_mat(mat mat1, mat mat2, mat *dest);
 void mul_mat(mat mat1, mat mat2, mat *dest);
 void mul_scalar(mat matrix, double scalar, mat *dest);
 void trans_mat(mat matrix, mat *dest);
-void reset_mat(mat *pm);
+void init_mat(mat *pm);
+
+#endif

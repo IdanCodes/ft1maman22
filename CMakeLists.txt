@@ -5,4 +5,6 @@ set(CMAKE_C_STANDARD 90)
 
 add_executable(maman22 mainmat.c
         mymat.c
-        utils.c)
+        inputhelper.c
+        errorhelper.c
+        mathelper.c)
