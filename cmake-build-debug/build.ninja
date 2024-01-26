@@ -61,20 +61,14 @@ build CMakeFiles/maman22.dir/mymat.c.o: C_COMPILER__maman22_unscanned_Debug /Use
   OBJECT_DIR = CMakeFiles/maman22.dir
   OBJECT_FILE_DIR = CMakeFiles/maman22.dir
 
-build CMakeFiles/maman22.dir/utils.c.o: C_COMPILER__maman22_unscanned_Debug /Users/idan/Library/CloudStorage/OneDrive-OpenUniversityofIsrael/אוניברסיטה/סמסטרים/2024א/מעבדה$ בתכנות$ מערכות/Code/_mamans/maman22/utils.c || cmake_object_order_depends_target_maman22
-  DEP_FILE = CMakeFiles/maman22.dir/utils.c.o.d
-  FLAGS = -g -std=gnu90 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk -fcolor-diagnostics
-  OBJECT_DIR = CMakeFiles/maman22.dir
-  OBJECT_FILE_DIR = CMakeFiles/maman22.dir
-
 build CMakeFiles/maman22.dir/inputhelper.c.o: C_COMPILER__maman22_unscanned_Debug /Users/idan/Library/CloudStorage/OneDrive-OpenUniversityofIsrael/אוניברסיטה/סמסטרים/2024א/מעבדה$ בתכנות$ מערכות/Code/_mamans/maman22/inputhelper.c || cmake_object_order_depends_target_maman22
   DEP_FILE = CMakeFiles/maman22.dir/inputhelper.c.o.d
   FLAGS = -g -std=gnu90 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk -fcolor-diagnostics
   OBJECT_DIR = CMakeFiles/maman22.dir
   OBJECT_FILE_DIR = CMakeFiles/maman22.dir
 
-build CMakeFiles/maman22.dir/errorHelper.c.o: C_COMPILER__maman22_unscanned_Debug /Users/idan/Library/CloudStorage/OneDrive-OpenUniversityofIsrael/אוניברסיטה/סמסטרים/2024א/מעבדה$ בתכנות$ מערכות/Code/_mamans/maman22/errorHelper.c || cmake_object_order_depends_target_maman22
-  DEP_FILE = CMakeFiles/maman22.dir/errorHelper.c.o.d
+build CMakeFiles/maman22.dir/errorhelper.c.o: C_COMPILER__maman22_unscanned_Debug /Users/idan/Library/CloudStorage/OneDrive-OpenUniversityofIsrael/אוניברסיטה/סמסטרים/2024א/מעבדה$ בתכנות$ מערכות/Code/_mamans/maman22/errorhelper.c || cmake_object_order_depends_target_maman22
+  DEP_FILE = CMakeFiles/maman22.dir/errorhelper.c.o.d
   FLAGS = -g -std=gnu90 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk -fcolor-diagnostics
   OBJECT_DIR = CMakeFiles/maman22.dir
   OBJECT_FILE_DIR = CMakeFiles/maman22.dir
@@ -93,7 +87,7 @@ build CMakeFiles/maman22.dir/mathelper.c.o: C_COMPILER__maman22_unscanned_Debug 
 #############################################
 # Link the executable maman22
 
-build maman22: C_EXECUTABLE_LINKER__maman22_Debug CMakeFiles/maman22.dir/mainmat.c.o CMakeFiles/maman22.dir/mymat.c.o CMakeFiles/maman22.dir/utils.c.o CMakeFiles/maman22.dir/inputhelper.c.o CMakeFiles/maman22.dir/errorHelper.c.o CMakeFiles/maman22.dir/mathelper.c.o
+build maman22: C_EXECUTABLE_LINKER__maman22_Debug CMakeFiles/maman22.dir/mainmat.c.o CMakeFiles/maman22.dir/mymat.c.o CMakeFiles/maman22.dir/inputhelper.c.o CMakeFiles/maman22.dir/errorhelper.c.o CMakeFiles/maman22.dir/mathelper.c.o
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk
   OBJECT_DIR = CMakeFiles/maman22.dir
   POST_BUILD = :

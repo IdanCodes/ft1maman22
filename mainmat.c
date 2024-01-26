@@ -9,8 +9,10 @@
 
 #define GET_VAR_NAME(Variable) (#Variable)
 
+int handleError(ErrCode err);
+
 int main(void) {
-    int i;
+    int i, len;
     char *line;
     ErrCode err;
     Instruction instr;
@@ -36,28 +38,40 @@ int main(void) {
     for (i = 0; i < NUM_MATS; i++)
         init_mat(mats[i].matrix);
 
-    while (getNextLine(&line) != 0) {
+    while ((len = getNextLine(&line)) != 0) {
         printf("%s\n", line);   /* print the line back */
 
         err = lineToInstruction(line, &instr);
-        if (err == err_none) {
-            executeInstruction(instr, mats, NUM_MATS);
 
-            if (instr.cmd == cmd_stop)
-                break;
-        }
-        else {
-            logErr(err);
+        if (handleError(err) || instr.cmd == cmd_stop)
+            break;
 
-            if (err == err_insuf_mem) {
-                printf("Stopping Program.\n");
-                break;
-            }
-        }
+        err = executeInstruction(instr, mats, NUM_MATS);
 
+        if (handleError(err))
+            break;
+
+        freeInstruction(&instr);
         free(line);
     }
 
-    free(line); /* in case we unexpectedly break from the loop */
+    if (len > 0)
+        free(line); /* in case we unexpectedly break from the loop */
+
+    return 0;
+}
+
+/* handleError: handle a given error. returns whether the program should stop running */
+int handleError(ErrCode err) {
+    if (err == err_none)
+        return 0;
+
+    logErr(err);
+
+    if (err == err_insuf_mem) {
+        printf("Stopping Program.\n");
+        return 1;
+    }
+
     return 0;
 }

@@ -15,6 +15,8 @@ int getNextLine(char **pline) {
 
     while ((c = getch()) == ' ' || c == '\t' || c == '\n')
         ;   /* wait until we find the next line of input */
+    ungetch(c);
+
     if (c == EOF)
         return 0;   /* reached end */
 
@@ -60,12 +62,12 @@ int getNextLine(char **pline) {
  * returns an error if there was one. (else err_none) */
 ErrCode lineToInstruction(char *str, Instruction *pi) {
     int i, numArgs;
+    double temp;
     ErrCode err;
-    Command cmd;
     CmdArgument *argTypes;
 
     /* -- read command -- */
-    err = strToCommand(str, &cmd);
+    err = strToCommand(str, &(pi->cmd));
     str = getEndOfToken(str); /* skip to the end of the command */
 
     if (err != err_none)
@@ -77,16 +79,16 @@ ErrCode lineToInstruction(char *str, Instruction *pi) {
         return err_ill_com;
 
     /* -- read arguments -- */
-    argTypes = getArgTypes(cmd, &numArgs);
+    argTypes = getArgTypes(pi->cmd, &numArgs);
 
-    free(pi->args); /* free previous args to reallocate */
+    /*free(pi->args); *//* free previous args to reallocate */
     pi->args = (Argument *)malloc(sizeof(Argument) * numArgs);
 
     if (pi->args == NULL)
         return err_insuf_mem;   /* couldn't allocate enough memory */
 
     for (i = 0; i < numArgs; i++) {
-        if (*str == '\n' || *str == EOF) {
+        if (*str == '\0' || *str == '\n' || *str == EOF) {
             if (argTypes[i].required)
                 return err_arg_exp;     /* reached end of string */
             else {
@@ -100,7 +102,7 @@ ErrCode lineToInstruction(char *str, Instruction *pi) {
         pi->args[i].type = argTypes[i].type; /* configure the argument's type */
 
         if (argTypes[i].type == argt_name) {
-            if (!isAlphaTok(str))
+            if (tryParseNumber(str, &temp))
                 return err_mat_exp;
 
             /* strVal is already freed (since we freed args) */
@@ -117,13 +119,13 @@ ErrCode lineToInstruction(char *str, Instruction *pi) {
         str = skipEmpty(str);
 
         if (i < numArgs - 1) {
-            if (*str != ',')
+            if (*str != ',' && *str != '\n' && *str != EOF && *str != '\0')
                 return err_comm_exp;
             str = skipEmpty(str + 1);
             if (*str == ',')
                 return err_mult_com;
         }
-        else if (*str != '\n' && *str != EOF)
+        else if (*str != '\0' && *str != '\n' && *str != EOF)
             return err_extra_text;
     }
 
@@ -142,8 +144,7 @@ ErrCode strToCommand(char *str, Command *cmd) {
     result = err_undef_cmd;
 
     for (i = 0; i < NUM_CMDS; i++) {
-        if (cmdLen != getTokLen(command_identifiers[i].name)       /* same length check */
-            || eqlToLen(str, command_identifiers[i].name, cmdLen))  /* actual string check */
+        if (!eqlToLen(str, command_identifiers[i].name, cmdLen))  /* actual string check */
             continue;
 
         /* found the command */
@@ -206,13 +207,13 @@ int tryParseNumber(char *str, double *number) {
         result += *str - '0';   /* scalar-ify */
     }
 
-    if (str != end) {
+    if ((str++) != end) {
         /* read decimal part */
         for (power = 1; str < end; str++) {
             if (!isDig(*str))
-                return 0;
+                printf("%c is not dig\n", *str);
 
-            result += (*str - '0') * pow(10, power++);
+            result += (*str - '0') * pow(10, -(power++));
         }
     }
 
@@ -238,10 +239,17 @@ int eqlToLen(char *str1, char *str2, int len) {
 /* dupTok: duplicate the first token of the given string.
  * returns the address of the copy, or NULL is there was insufficient memory. */
 char *dupTok(char *str) {
+    int i;
     char *tokEnd, *dup;
 
     tokEnd = getEndOfToken(str);
-    dup = (char *)malloc(sizeof(char *) * (tokEnd - str));
+    dup = (char *)malloc(sizeof(char) * (tokEnd - str));
+
+    if (dup == NULL)
+        return NULL;
+
+    for (i = 0; str + i < tokEnd; i++)
+        dup[i] = str[i];
 
     /* NULL if insufficient memory */
     return dup;
@@ -255,19 +263,6 @@ int getTokLen(char *str) {
 /* isDig: returns whether c is a digit (ASCII) */
 int isDig(int c) {
     return '0' <= c && c <= '9';
-}
-
-/* isAlphaTok: returns whether the first token consists of only alphabetical characters */
-int isAlphaTok(char *str) {
-    char *end;
-    end = getEndOfToken(str);
-
-    for (; str < end; str++) {
-        if (!isalpha(*str))
-            return 0;
-    }
-
-    return 1;
 }
 
 /* isInTok: returns whether c is inside a token */
@@ -294,6 +289,23 @@ CmdArgument *getArgTypes(Command cmd, int *numArgs) {
 
     *numArgs = id.numArgs;
     return id.arguments;
+}
+
+/* freeInstruction: free the given instruction */
+void freeInstruction(Instruction *pi) {
+    int i, numArgs;
+    CmdArgument *types;
+
+    types = getArgTypes(pi->cmd, &numArgs);
+
+    /* free each argument (only the string) */
+    for (i = 0; i < numArgs; i++) {
+        if (types[i].type == argt_name && pi->args[i].hasValue)
+            free(pi->args[i].value.strVal);
+    }
+
+    free(pi->args);
+    /*free(pi);*/
 }
 
 static char buf[BUFSIZE];      /* buffer for ungetch */
@@ -356,7 +368,7 @@ static CmdArgument cmd_mulm_args[CMD_MULM_NARGS] = {
 
 static CmdArgument cmd_muls_args[CMD_MULS_NARGS] = {
         { argt_name, 1 },
-        { argt_name, 1 },
+        { argt_scalar, 1 },
         { argt_name, 1 }
 };
 

@@ -78,11 +78,11 @@ int eqlToLen(char *str1, char *str2, int len);
 char *dupTok(char *str);
 int getTokLen(char *str);
 int isDig(int c);
-int isAlphaTok(char *str);
 int isInTok(char c);
 ErrCode strToCommand(char *str, Command *pcmd);
 CmdId getCmdId(Command cmd);
 CmdArgument *getArgTypes(Command cmd, int *numArgs);
+void freeInstruction(Instruction *pi);
 int getch(void);
 void ungetch(int c);
 
