@@ -6,7 +6,8 @@
 #include "inputhelper.h"
 
 /* getNextLine: get the next line from the input (formatted with all tabs and whitespaces to tabs).
- * returns the length of the line. (or 0 if there was insufficient memory) */
+ * returns the length of the line. (or 0 if failed to allocate memory)
+ * the line will be terminated with a '\0'. */
 int getNextLine(char **pline) {
     int i, c, numChunks;
 
@@ -36,11 +37,12 @@ int getNextLine(char **pline) {
         if (i >= numChunks * CHUNKSIZE) {
             /* move *pline to a new address (or keep existing one) with another chunk allocated */
             numChunks++;
-            *pline = (char *)realloc(*pline, numChunks * sizeof(char) * CHUNKSIZE);
+            *pline = (char *)realloc(*pline, numChunks * sizeof(char) * CHUNKSIZE + sizeof(char));
             if (*pline == NULL)
                 return 0;   /* couldn't allocate enough memory */
         }
-        else if (c == ' ' || c == '\t') {
+
+        if (c == ' ' || c == '\t') {
             /* add a whitespace and skip whitespaces and tabs */
             (*pline)[i++] = ' ';
             while ((c = getch()) == ' ' || c == '\t')
@@ -59,7 +61,8 @@ int getNextLine(char **pline) {
 }
 
 /* lineToInstruction: convert a string to an instruction.
- * returns an error if there was one. (else err_none) */
+ * returns an error if there was one (else err_none).
+ * the given string must be terminated with a '\0'. */
 ErrCode lineToInstruction(char *str, Instruction *pi) {
     int i, numArgs;
     double temp;
@@ -68,11 +71,10 @@ ErrCode lineToInstruction(char *str, Instruction *pi) {
 
     /* -- read command -- */
     err = strToCommand(str, &(pi->cmd));
-    str = getEndOfToken(str); /* skip to the end of the command */
-
     if (err != err_none)
         return err;
 
+    str = getEndOfToken(str); /* skip to the end of the command token */
     str = skipEmpty(str);
 
     if (*str == ',')
@@ -87,47 +89,76 @@ ErrCode lineToInstruction(char *str, Instruction *pi) {
     if (pi->args == NULL)
         return err_insuf_mem;   /* couldn't allocate enough memory */
 
-    for (i = 0; i < numArgs; i++) {
-        if (*str == '\0' || *str == '\n' || *str == EOF) {
-            if (argTypes[i].required)
-                return err_arg_exp;     /* reached end of string */
-            else {
-                /* there are no required arguments after an optional one.
-                 * initialize the rest of the arguments as having no value */
-                pi->args[i].hasValue = 0;
-                continue;
-            }
+    for (i = 0; i < numArgs && err == err_none; i++) {
+        if (*str == '\0') {
+            if (!argTypes[i].required)
+                pi->args[i].hasValue = 0; /* initialize unspecified optional arguments with no value */
+            else
+                err = err_arg_exp; /* reached end of string */
+
+            continue;
         }
 
         pi->args[i].type = argTypes[i].type; /* configure the argument's type */
 
         if (argTypes[i].type == argt_name) {
             if (tryParseNumber(str, &temp))
-                return err_mat_exp;
+                err = err_mat_exp; /* received a number instead of a matrix name */
 
-            /* strVal is already freed (since we freed args) */
             pi->args[i].value.strVal = dupTok(str);
             if (pi->args[i].value.strVal == NULL)
-                return err_insuf_mem;
+                err = err_insuf_mem;
         }
-        else if (!tryParseNumber(str, &(pi->args[i].value.scalar))) /* parse the scalar into its designated address */
-            return err_scl_exp;     /* argument is not a number */
+        else if (!tryParseNumber(str,
+             &(pi->args[i].value.scalar))) /* parse the scalar into its designated address */
+            err = err_nan; /* argument is not a number */
+
+        if (err != err_none)
+            continue;
 
         pi->args[i].hasValue = 1;
+        str = skipEmpty(getEndOfToken(str));
 
-        str = getEndOfToken(str);
-        str = skipEmpty(str);
+        if (i == numArgs - 1 || *str == '\0')
+            continue;
 
-        if (i < numArgs - 1) {
-            if (*str != ',' && *str != '\n' && *str != EOF && *str != '\0')
-                return err_comm_exp;
-            str = skipEmpty(str + 1);
-            if (*str == ',')
-                return err_mult_com;
-        }
-        else if (*str != '\0' && *str != '\n' && *str != EOF)
-            return err_extra_text;
+        if (*str != ',')
+            err = err_comm_exp;
+        if (*(str = skipEmpty(str + 1)) == ',')
+            err = err_mult_com;
+        else if (*str == '\0')
+            err = err_arg_exp;
     }
+
+    if (pi->cmd == cmd_read) {
+        /* read_mat can have extra *number* arguments; read them and make sure they're valid */
+        str = skipEmpty(getEndOfToken(str + 1));
+        while (*str != '\0' && err == err_none) {
+            if (!tryParseNumber(str, &temp))
+                err = err_nan;
+            else if (*(str = skipEmpty(getEndOfToken(str))) != ',' && *str != '\0')
+                err = err_comm_exp;
+            else if (*str == '\0')
+                break;  /* this was the last argument */
+            else if (*str != '\0' && *(str = skipEmpty(str + 1)) == ',')
+                err = err_mult_com;
+            else if (*str == '\0')
+                err = err_arg_exp;
+        }
+    }
+
+    if (err != err_none) {
+        /* encountered an error, free the allocated memory */
+        /* no need to pay attention to arguments that weren't stored */
+        for (; i < numArgs; i++)
+            pi->args[i].hasValue = 0;
+
+        freeInstruction(pi);
+        return err;
+    }
+
+    if (*str != '\0')
+        return err_extra_text;
 
     return err_none;
 }
@@ -144,7 +175,8 @@ ErrCode strToCommand(char *str, Command *cmd) {
     result = err_undef_cmd;
 
     for (i = 0; i < NUM_CMDS; i++) {
-        if (!eqlToLen(str, command_identifiers[i].name, cmdLen))  /* actual string check */
+        if (cmdLen != getTokLen(command_identifiers[i].name) ||
+                !eqlToLen(str, command_identifiers[i].name, cmdLen))  /* actual string check */
             continue;
 
         /* found the command */
@@ -156,21 +188,7 @@ ErrCode strToCommand(char *str, Command *cmd) {
     return result;
 }
 
-/* equalFirstToken: returns wheter the first tokens of the given strings are equal */
-int equalFirstToken(char *str1, char *str2) {
-    char *end1, *end2;
-
-    end1 = getEndOfToken(str1);
-    end2 = getEndOfToken(str2);
-
-    /* unequal lengths */
-    if (end1 - str1 != end2 - str2)
-        return 0;
-
-    return eqlToLen(str1, str2, (int)(end1 - str1));
-}
-
-/* getEndOfToken: returns the address of the final character in the first token of the given string */
+/* getEndOfToken: returns the address of the first character after given string's first token */
 char *getEndOfToken(char *str) {
     for (; isInTok(*str); str++)
         ; /* wait until we encounter a character out of the token */
@@ -211,7 +229,7 @@ int tryParseNumber(char *str, double *number) {
         /* read decimal part */
         for (power = 1; str < end; str++) {
             if (!isDig(*str))
-                printf("%c is not dig\n", *str);
+                return 0;
 
             result += (*str - '0') * pow(10, -(power++));
         }
@@ -296,16 +314,21 @@ void freeInstruction(Instruction *pi) {
     int i, numArgs;
     CmdArgument *types;
 
+    if (pi == NULL)
+        return;
+
     types = getArgTypes(pi->cmd, &numArgs);
 
-    /* free each argument (only the string) */
+    if (pi->args == NULL)
+        return;
+
+    /* free each argument (pretty much just the string value) */
     for (i = 0; i < numArgs; i++) {
         if (types[i].type == argt_name && pi->args[i].hasValue)
             free(pi->args[i].value.strVal);
     }
 
     free(pi->args);
-    /*free(pi);*/
 }
 
 static char buf[BUFSIZE];      /* buffer for ungetch */
@@ -326,7 +349,7 @@ void ungetch(int c) {
 
 static CmdArgument cmd_read_args[CMD_READ_NARGS] = {
         { argt_name, 1 },
-        { argt_scalar, 0 },
+        { argt_scalar, 1 }, /* at least one argument to read */
         { argt_scalar, 0 },
         { argt_scalar, 0 },
         { argt_scalar, 0 },

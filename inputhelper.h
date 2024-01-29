@@ -70,7 +70,6 @@ const CmdId command_identifiers[NUM_CMDS];
 
 int getNextLine(char **pline);
 ErrCode lineToInstruction(char *str, Instruction *pi);
-int equalFirstToken(char *str1, char *str2);
 char *getEndOfToken(char *str);
 int tryParseNumber(char *str, double *number);
 char *skipEmpty(char *str);

@@ -9,23 +9,21 @@
 
 #define GET_VAR_NAME(Variable) (#Variable)
 
-int handleError(ErrCode err);
-
 int main(void) {
-    int i, len;
+    int i, legalStop;
     char *line;
     ErrCode err;
     Instruction instr;
-
     mat MAT_A, MAT_B, MAT_C, MAT_D, MAT_E, MAT_F;
+
     /* register the matrices */
     MatId mats[NUM_MATS] = {
-            { GET_VAR_NAME(MAT_A), NULL },
-            { GET_VAR_NAME(MAT_B), NULL },
-            { GET_VAR_NAME(MAT_C), NULL },
-            { GET_VAR_NAME(MAT_D), NULL },
-            { GET_VAR_NAME(MAT_E), NULL },
-            { GET_VAR_NAME(MAT_F), NULL }
+            {GET_VAR_NAME(MAT_A), NULL},
+            {GET_VAR_NAME(MAT_B), NULL},
+            {GET_VAR_NAME(MAT_C), NULL},
+            {GET_VAR_NAME(MAT_D), NULL},
+            {GET_VAR_NAME(MAT_E), NULL},
+            {GET_VAR_NAME(MAT_F), NULL}
     };
 
     /* initialize matrices */
@@ -35,43 +33,31 @@ int main(void) {
     mats[3].matrix = &MAT_D;
     mats[4].matrix = &MAT_E;
     mats[5].matrix = &MAT_F;
+
+    legalStop = 0;  /* used to check if the program was stopped due to an error or a stop command */
+
     for (i = 0; i < NUM_MATS; i++)
         init_mat(mats[i].matrix);
 
-    while ((len = getNextLine(&line)) != 0) {
+    while (getNextLine(&line) != 0) {
         printf("%s\n", line);   /* print the line back */
 
         err = lineToInstruction(line, &instr);
+        free(line);     /* finished using the line */
 
-        if (handleError(err) || instr.cmd == cmd_stop)
+        if (((err = handleError(err)) == err_hard) || (legalStop = (instr.cmd == cmd_stop)))
             break;
+        else if (err == err_light)  /* error that doesn't require stopping the program */
+            continue;       /* skip execution */
 
         err = executeInstruction(instr, mats, NUM_MATS);
-
-        if (handleError(err))
-            break;
+        handleError(err);
 
         freeInstruction(&instr);
-        free(line);
     }
 
-    if (len > 0)
-        free(line); /* in case we unexpectedly break from the loop */
-
-    return 0;
-}
-
-/* handleError: handle a given error. returns whether the program should stop running */
-int handleError(ErrCode err) {
-    if (err == err_none)
-        return 0;
-
-    logErr(err);
-
-    if (err == err_insuf_mem) {
-        printf("Stopping Program.\n");
-        return 1;
-    }
+    if (err == err_none && !legalStop)
+        printf("Warning: did not receive a stop instruction.");
 
     return 0;
 }
